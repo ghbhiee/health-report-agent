@@ -1,0 +1,6 @@
+# Python 3.9+ — 纯 Python 依赖，macOS / Linux / Windows 通用。
+# 刻意不含任何 OCR 引擎：没有文字层的图交给 agent 自己读（见 docs/20-extract.md）。
+pymupdf>=1.23      # 读 PDF 文字层、渲染页面、抽内嵌图
+pillow>=10.0       # 裁图、转 WebP
+numpy>=1.24        # 裁白边时的像素判断
+openpyxl>=3.1      # 体检机构常给 Excel 汇总表

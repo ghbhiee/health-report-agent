@@ -1,0 +1,50 @@
+name: Deploy demo to GitHub Pages
+
+# demo/index.html is fully self-contained — every image and PDF is inlined — so the
+# published site is that one file and nothing else. docs/ stays out of it deliberately:
+# it holds the Markdown guides, and letting Pages loose on them would mean Jekyll.
+on:
+  push:
+    branches: [main]
+    paths: ['demo/index.html', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to publish a page that reaches the network
+        run: |
+          # The demo must stay as offline as a user's own dashboard. Catch a regression
+          # here rather than after it is public.
+          if grep -qE '(src|href)[[:space:]]*=[[:space:]]*"https?://|fetch\(|XMLHttpRequest' demo/index.html; then
+            echo "demo/index.html contains an external reference — refusing to deploy"
+            exit 1
+          fi
+          echo "no external references"
+
+      - name: Stage the single-file demo
+        run: |
+          mkdir -p _site
+          cp demo/index.html _site/index.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

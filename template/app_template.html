@@ -1,0 +1,1195 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>健康档案 · 体检与检查报告汇总</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f3f0;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --border-2:rgba(11,11,11,.16);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --delta-good:#006300;
+  --band:rgba(12,163,12,.10); --band-edge:rgba(12,163,12,.30);
+  --shadow:0 1px 2px rgba(11,11,11,.05), 0 6px 20px rgba(11,11,11,.06);
+  --r:12px;
+  --drawer-w:min(680px,94vw);   /* drawer width; the split-mode modal sizes against it */
+}
+:root[data-theme="dark"], :root[data-theme="auto"].dark{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222221;
+  --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --border-2:rgba(255,255,255,.18);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --delta-good:#0ca30c;
+  --band:rgba(12,163,12,.14); --band-edge:rgba(12,163,12,.34);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--page); color:var(--ink);
+  font:15px/1.6 system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--s1)}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ---------- shell ---------- */
+.top{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--page) 88%,transparent);
+  backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid var(--border)}
+.top-in{max-width:1400px;margin:0 auto;padding:12px 24px 0}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+.brand .who{color:var(--ink-2);font-size:13.5px}
+.brand .who b{font-weight:600;color:var(--ink)}
+.spacer{flex:1}
+.iconbtn{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:5px 11px;font-size:13px;color:var(--ink-2)}
+.iconbtn:hover{border-color:var(--border-2);color:var(--ink)}
+nav{display:flex;gap:4px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:none;border:0;padding:9px 14px 11px;font-size:14.5px;color:var(--ink-2);
+  border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav button:hover{color:var(--ink)}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1);font-weight:600}
+main{max-width:1400px;margin:0 auto;padding:26px 24px 90px}
+section[hidden]{display:none}
+
+h2.sec{font-size:15px;font-weight:650;margin:34px 0 14px;letter-spacing:.01em}
+h2.sec:first-child{margin-top:4px}
+h2.sec .hint{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+
+/* ---------- stat tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px}
+.tile{padding:15px 17px}
+.tile .lab{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+.tile .val{font-size:29px;font-weight:640;margin-top:5px;letter-spacing:-.02em;line-height:1.15}
+.tile .val small{font-size:14px;font-weight:500;color:var(--ink-2);margin-left:3px}
+.tile .sub{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+
+/* ---------- watchlist ---------- */
+.watch{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.wcard{padding:14px 16px 10px;cursor:pointer;transition:border-color .12s,transform .12s}
+.wcard:hover{border-color:var(--border-2);transform:translateY(-1px)}
+.wcard .hd{display:flex;align-items:baseline;gap:8px}
+.wcard .nm{font-weight:600;font-size:14.5px}
+.wcard .un{color:var(--muted);font-size:12px}
+.wcard .now{display:flex;align-items:baseline;gap:9px;margin:6px 0 2px}
+.wcard .now b{font-size:23px;font-weight:640;letter-spacing:-.01em}
+.wcard .ref{font-size:12px;color:var(--muted);margin-top:2px}
+
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;
+  padding:2px 7px;border-radius:20px;line-height:1.5;white-space:nowrap}
+.b-hi{color:#fff;background:var(--crit)}
+.b-lo{color:#fff;background:var(--s1)}
+.b-ok{color:#fff;background:var(--good)}
+.b-note{color:#3d2c00;background:var(--warn)}
+.b-soft{color:var(--ink-2);background:var(--surface-2);border:1px solid var(--border)}
+:root[data-theme="dark"] .b-note, :root[data-theme="auto"].dark .b-note{color:#241d05}
+
+/* ---------- threads ---------- */
+.threads{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:12px}
+.thread{padding:16px 18px}
+.thread h3{margin:0 0 6px;font-size:14.5px;font-weight:640;display:flex;gap:8px;align-items:center}
+.thread p{margin:0 0 11px;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:3px 9px;border-radius:7px;background:var(--surface-2);
+  border:1px solid var(--border);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--s1);color:var(--s1)}
+
+/* ---------- timeline ---------- */
+.tl-wrap{padding:16px 18px 8px;overflow-x:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:2px 0 12px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ---------- trends ---------- */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:2px}
+.seg button{background:none;border:0;padding:6px 13px;border-radius:7px;font-size:13.5px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.07)}
+input[type=search],select{background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:7px 11px;font:inherit;font-size:13.5px;color:var(--ink);min-width:150px}
+input[type=search]:focus,select:focus{outline:2px solid var(--s1);outline-offset:-1px;border-color:transparent}
+
+.grpttl{font-size:12.5px;font-weight:650;color:var(--muted);letter-spacing:.06em;
+  margin:26px 0 10px;text-transform:none}
+.axisnote{font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--border);
+  border-radius:9px;padding:8px 13px;margin:-4px 0 4px;line-height:1.7}
+.axisnote b{font-weight:600;font-variant-numeric:tabular-nums}
+.axisnote .ar{color:var(--muted);margin:0 6px}
+.mult{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.mcard{padding:13px 15px 8px;cursor:pointer;transition:border-color .12s,transform .12s}
+.mcard:hover{border-color:var(--border-2);transform:translateY(-1px)}
+.mcard .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mcard .nm{font-weight:600;font-size:13.5px;line-height:1.35}
+.mcard .un{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.mcard .now{display:flex;align-items:baseline;gap:8px;margin:5px 0 1px}
+.mcard .now b{font-size:20px;font-weight:640;letter-spacing:-.01em}
+.mcard .dl{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+.emptynote{color:var(--muted);font-size:13.5px;padding:26px 2px}
+
+/* value tables */
+table.grid{border-collapse:collapse;width:100%;font-size:13.5px}
+table.grid th,table.grid td{padding:7px 11px;text-align:right;border-bottom:1px solid var(--grid);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.grid th:first-child,table.grid td:first-child{text-align:left;font-variant-numeric:normal}
+table.grid thead th{color:var(--muted);font-weight:600;font-size:12.5px;border-bottom:1px solid var(--axis)}
+table.grid tbody tr:hover{background:var(--surface-2)}
+/* the row you arrived from, when a report is opened from an indicator's trend. NOT
+   red/blue — those mean 偏高/偏低 on the value cell; this is a selection cue, so it
+   is carried by tint + left bar + bold + an explicit tag, never by colour alone. */
+tr.markrow>td{background:var(--surface-2);font-weight:600}
+tr.markrow>td:first-child{box-shadow:inset 3px 0 0 var(--ink)}
+.marktag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:5px;
+  font-size:10.5px;font-weight:600;letter-spacing:.03em;
+  color:var(--page);background:var(--ink);vertical-align:1px}
+table.grid td.ref{color:var(--muted);font-size:12.5px}
+.v-hi{color:var(--crit);font-weight:640} .v-lo{color:var(--s1);font-weight:640}
+.tblwrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);background:var(--surface)}
+.rowgrp td{background:var(--surface-2);font-weight:650;font-size:12.5px;color:var(--ink-2);
+  text-align:left!important;letter-spacing:.04em}
+
+/* ---------- reports ---------- */
+.rlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.rcard{padding:14px 16px;cursor:pointer;transition:border-color .12s,transform .12s;display:flex;
+  flex-direction:column;gap:7px}
+.rcard:hover{border-color:var(--border-2);transform:translateY(-1px)}
+.rcard .rt{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.rcard .nm{font-weight:600;font-size:14px;line-height:1.4}
+.rcard .meta{font-size:12.5px;color:var(--muted);display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.rcard .cc{font-size:13px;color:var(--ink-2);line-height:1.6;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rcard .thumbs{display:flex;gap:4px;margin-top:1px}
+.rcard .thumbs img{width:38px;height:32px;object-fit:cover;border-radius:4px;border:1px solid var(--border)}
+.yhead{font-size:12.5px;font-weight:650;color:var(--muted);letter-spacing:.06em;margin:26px 0 10px}
+
+/* ---------- gallery ---------- */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.gitem{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;
+  transition:border-color .12s,transform .12s}
+.gitem:hover{border-color:var(--s1);transform:translateY(-1px)}
+.gitem img{width:100%;aspect-ratio:4/3;object-fit:contain;display:block;background:#000}
+.gitem .cap{padding:8px 10px 9px;font-size:12px;color:var(--ink-2);line-height:1.5}
+
+/* ---------- drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(11,11,11,.42);z-index:80;opacity:0;pointer-events:none;
+  transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:var(--drawer-w);background:var(--page);
+  z-index:90;transform:translateX(100%);transition:transform .22s cubic-bezier(.32,.72,0,1);
+  display:flex;flex-direction:column;border-left:1px solid var(--border)}
+.drawer.on{transform:none}
+/* drawer-content must be a flex column that fills the drawer, or .dbody's flex:1
+   is meaningless and the body grows past the viewport instead of scrolling */
+#drawer-content{display:flex;flex-direction:column;flex:1;min-height:0}
+.dhead{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;gap:12px;
+  align-items:flex-start;flex:0 0 auto}
+.dhead h3{margin:0 0 5px;font-size:17px;font-weight:640;line-height:1.35}
+.dbody{overflow-y:auto;overflow-x:hidden;padding:18px 22px 60px;flex:1 1 auto;min-height:0;-webkit-overflow-scrolling:touch}
+.dsec{margin-bottom:22px}
+.dsec h4{margin:0 0 8px;font-size:12.5px;font-weight:650;color:var(--muted);letter-spacing:.06em}
+.dsec p{margin:0;font-size:14px;line-height:1.75;color:var(--ink-2);white-space:pre-wrap}
+.dsec p.concl{color:var(--ink);font-weight:500}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--surface);border:1px solid var(--border-2);border-radius:9px;padding:8px 14px;
+  font-size:13.5px;font-weight:500}
+.btn:hover{border-color:var(--s1);color:var(--s1)}
+.btn.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+.btn.primary:hover{filter:brightness(1.08);color:#fff}
+.srcbox{border:1px solid var(--border);border-radius:10px;padding:12px 13px;margin-bottom:10px;
+  background:var(--surface)}
+.srchd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.srchd>span:first-child{font-size:13.5px;font-weight:600;line-height:1.4}
+.btn.sm{padding:5px 10px;font-size:12.5px;border-radius:7px}
+.rads{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.radcard{padding:14px 16px}
+.radcard h3{margin:0 0 4px;font-size:14px;font-weight:640}
+.radcard .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.radseq{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+.radstep{display:flex;flex-direction:column;gap:3px;padding:0 11px 0 0;margin-right:10px;
+  border-right:1px solid var(--grid);cursor:pointer}
+.radstep:last-child{border-right:0;margin-right:0;padding-right:0}
+.radstep .d{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.radstep .g{font-size:15px;font-weight:660;letter-spacing:-.01em}
+.radstep .m{font-size:10.5px;color:var(--muted)}
+.radstep:hover .d,.radstep:hover .m{color:var(--ink-2)}
+.pageimgs img{width:100%;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;
+  background:#fff;cursor:zoom-in;display:block}
+.gal-sm{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+
+/* ---------- modal / lightbox ---------- */
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:26px}
+.modal.on{display:flex}
+.modal-bd{position:absolute;inset:0;background:rgba(8,8,8,.72)}
+.modal-in{position:relative;background:var(--page);border-radius:14px;max-width:920px;width:100%;
+  max-height:92vh;overflow-y:auto;padding:22px 26px 26px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal-x{position:absolute;top:12px;right:14px;background:none;border:0;font-size:22px;color:var(--muted);
+  line-height:1;padding:4px 8px}
+.modal-x:hover{color:var(--ink)}
+/* Modal + drawer open together => side-by-side split: the indicator modal parks in
+   the space left of the drawer, at full opacity and still interactive, so 来源报告 can
+   be clicked repeatedly and the drawer on the right follows. Closing the drawer
+   returns the modal to its normal centred size. (Raw z-index is drawer 90 < modal 100,
+   which would bury the drawer behind the modal — hence the .front overrides.) */
+.drawer.front{z-index:110}
+.scrim.front{z-index:105}
+.modal-in{transition:width .22s cubic-bezier(.32,.72,0,1), max-width .22s cubic-bezier(.32,.72,0,1)}
+.modal-bd{transition:opacity .18s}
+.modal.split{justify-content:flex-start;padding:14px 0 14px 16px;pointer-events:none}
+.modal.split .modal-bd{opacity:0;pointer-events:none}      /* no dimming: both panes live */
+.modal.split .modal-in{pointer-events:auto;opacity:1;
+  width:calc(100vw - var(--drawer-w) - 30px);max-width:none;max-height:calc(100vh - 28px)}
+.scrim.split{opacity:0;pointer-events:none}                /* must not block the modal */
+@media (max-width:1000px){        /* too narrow for two panes: keep the modal centred */
+  .modal.split{justify-content:center;padding:26px}
+  .modal.split .modal-in{width:100%;max-width:920px;max-height:92vh}
+  .scrim.split{opacity:1;pointer-events:auto}
+}
+.lb-in{position:relative;max-width:min(1200px,96vw);text-align:center}
+.lb-in img{max-width:100%;max-height:82vh;border-radius:10px;background:#000;display:block;margin:0 auto}
+.lb-cap{color:#e8e7e2;font-size:13.5px;margin-top:12px;line-height:1.6}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.14);
+  border:0;color:#fff;font-size:26px;width:46px;height:60px;border-radius:9px;backdrop-filter:blur(6px)}
+.lb-nav:hover{background:rgba(255,255,255,.26)}
+.lb-prev{left:-58px} .lb-next{right:-58px}
+@media(max-width:1340px){.lb-prev{left:6px}.lb-next{right:6px}}
+
+/* ---------- compare ---------- */
+.cmp-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.arrowbig{color:var(--muted);font-size:17px}
+td.dcell{font-weight:600;color:var(--ink-2)}
+.d-flat{color:var(--muted)}
+.movers{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px;margin-bottom:8px}
+.mv{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mv .l{font-size:13.5px;font-weight:560}
+.mv .l small{display:block;color:var(--muted);font-weight:400;font-size:11.5px;margin-top:1px}
+.mv .r{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+
+/* tooltip */
+#tip{position:fixed;z-index:200;background:var(--ink);color:var(--page);font-size:12.5px;line-height:1.55;
+  padding:7px 10px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .1s;max-width:280px;
+  box-shadow:0 6px 20px rgba(0,0,0,.28)}
+#tip.on{opacity:1}
+#tip b{font-weight:640}
+
+.foot{color:var(--muted);font-size:12.5px;line-height:1.8;margin-top:44px;padding-top:18px;
+  border-top:1px solid var(--border)}
+.foot b{color:var(--ink-2);font-weight:600}
+@media(max-width:640px){
+  .top-in,main{padding-left:14px;padding-right:14px}
+  .brand h1{font-size:17px}
+}
+/* Optional page-wide notice strip, rendered only when DATA.banner is set.
+   The demo build uses it to declare that every figure on the page is fabricated. */
+.banner{background:#fff3d0;color:#3d2c00;border-bottom:1px solid rgba(160,124,10,.35);
+  font-size:13.5px;line-height:1.6;padding:10px 22px;text-align:center}
+.banner b{font-weight:700}
+:root[data-theme="dark"] .banner, :root[data-theme="auto"].dark .banner{
+  background:#3b2f0d;color:#f6e3ac;border-bottom-color:rgba(246,227,172,.22)}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <div class="brand">
+    <h1>健康档案</h1>
+    <span class="who" id="who"></span>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="themebtn" title="切换深浅色">◐ 主题</button>
+  </div>
+  <nav id="nav" role="tablist"></nav>
+</div></div>
+
+<div class="banner" id="banner" hidden></div>
+
+<main>
+  <section id="v-overview"></section>
+  <section id="v-trends" hidden></section>
+  <section id="v-reports" hidden></section>
+  <section id="v-gallery" hidden></section>
+  <section id="v-compare" hidden></section>
+  <div class="foot" id="foot"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"><div id="drawer-content"></div></aside>
+<div class="modal" id="modal"><div class="modal-bd"></div><div class="modal-in" id="modal-in"></div></div>
+<div class="modal" id="lightbox"><div class="modal-bd"></div><div class="lb-in" id="lb-in"></div></div>
+<div id="tip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const ASSETS = /*__ASSETS__*/null;
+const MANIFEST = /*__MANIFEST__*/null;
+</script>
+<script>
+"use strict";
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> [...(r||document).querySelectorAll(s)];
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MAN = Object.fromEntries((MANIFEST||[]).map(m=>[m.no,m]));
+// Normalize every report so optional fields are always safe to read. A minimal
+// dataset can omit sources/tw/imgs/merged/exams/abnItems entirely (see DATA_CONTRACT.md);
+// a single-PDF report then falls back to one source built from {no,file,name}.
+DATA.reports.forEach(r=>{
+  if(!r.sources) r.sources = [{no:r.no, file:r.file, name:r.name}];
+  if(!r.exams)   r.exams   = [r.name];
+  if(r.merged==null) r.merged = r.sources.length;
+  r.tw = r.tw || [];
+  r.imgs = r.imgs || [];             // images attached directly to this report
+  r.abnItems = r.abnItems || [];
+});
+const REPORTS = DATA.reports.slice().sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);
+const BY_NO = Object.fromEntries(REPORTS.map(r=>[r.no,r]));
+const PANELS = DATA.panels || [];
+const PANEL_BY_KEY = Object.fromEntries(PANELS.map(p=>[p.key,p]));
+const THREADS = DATA.threads || [];
+const GRADES = DATA.grades || [];
+
+// Every diagnostic image in the dataset, from wherever it is attached:
+//   • directly on a report            → report.imgs[]
+//   • on an attached 图文/graphic doc  → manifest entry, linked via report.tw[]
+// Returns {k, cap, no (owning report), doc (source manifest id or null)}.
+function allImages(){
+  const out = [];
+  REPORTS.forEach(r=>{
+    (r.imgs||[]).forEach(i=> out.push({...i, no:r.no, doc:null}));
+    (r.tw||[]).forEach(tid=>{ const m=MAN[tid];
+      if(m) (m.imgs||[]).forEach(i=> out.push({...i, no:r.no, doc:tid})); });
+  });
+  return out;
+}
+const N_IMAGES = allImages().length;
+
+/* ============================ theme ============================ */
+const mq = matchMedia('(prefers-color-scheme: dark)');
+// Opened straight off disk, localStorage can be unavailable or throw; the theme
+// then simply lives for the session instead of breaking the page.
+let themePref = 'auto';
+try{ themePref = localStorage.getItem('hr-theme') || 'auto'; }catch(e){}
+function applyTheme(){
+  document.documentElement.dataset.theme = themePref;
+  document.documentElement.classList.toggle('dark', themePref==='auto' ? mq.matches : themePref==='dark');
+}
+mq.addEventListener('change', ()=>{ applyTheme(); rerenderCharts(); });
+$('#themebtn').onclick = ()=>{
+  themePref = themePref==='auto' ? (mq.matches?'light':'dark') : (themePref==='dark'?'light':'dark');
+  try{ localStorage.setItem('hr-theme', themePref); }catch(e){}
+  applyTheme(); rerenderCharts();
+};
+applyTheme();
+
+/* ============================ helpers ============================ */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const dShort = d => d.slice(2,7).replace('-','/');
+const dCN = d => `${+d.slice(5,7)}月${+d.slice(8,10)}日`;
+// Show the value exactly as the lab printed it (1.092, not 1.09); fmtNum is for
+// derived numbers only — deltas, axis ticks, range bounds.
+const disp = v => (v && v.t!=null && v.t!=='') ? v.t : fmtNum(v && v.v);
+function fmtNum(v){
+  if(v==null) return '—';
+  const a = Math.abs(v);
+  if(Number.isInteger(v)) return String(v);
+  return v.toFixed(a<1?2:(a<100?2:1)).replace(/\.?0+$/,'');
+}
+function monthsBetween(a,b){
+  return (new Date(b).getFullYear()-new Date(a).getFullYear())*12 + (new Date(b).getMonth()-new Date(a).getMonth());
+}
+const STATUS_COLOR = {'正常':'var(--good)','异常':'var(--crit)','见结论':'var(--warn)'};
+const STATUS_BADGE = {'正常':'b-ok','异常':'b-hi','见结论':'b-note'};
+// 'A' marks a qualitative result outside its printed reference (隐血 +++, 清洁度 Ⅲ)
+const flagLabel = f => f==='H' ? '偏高' : f==='L' ? '偏低' : f==='A' ? '异常' : '';
+const flagCls   = f => f==='H' ? 'v-hi' : f==='L' ? 'v-lo' : f==='A' ? 'v-hi' : '';
+const flagMark  = f => f==='H' ? ' ↑' : f==='L' ? ' ↓' : f==='A' ? ' !' : '';
+const flagBadge = f => f==='L' ? 'b-lo' : 'b-hi';
+const flagArrow = f => f==='H' ? '↑' : f==='L' ? '↓' : '!';
+
+/* tooltip */
+const tip = $('#tip');
+function showTip(html,x,y){
+  tip.innerHTML = html; tip.classList.add('on');
+  const r = tip.getBoundingClientRect();
+  let l = x+14, t = y-r.height-12;
+  if(l+r.width > innerWidth-10) l = x-r.width-14;
+  if(t < 8) t = y+18;
+  tip.style.left = l+'px'; tip.style.top = t+'px';
+}
+const hideTip = ()=> tip.classList.remove('on');
+document.addEventListener('scroll', hideTip, true);
+
+/* ============================ charts ============================ */
+/* Single-series trend with the reference band drawn behind it.
+   Ranges are per-measurement: the lab restated some criteria between visits. */
+function trendChart(item, W, H, opts={}){
+  const vals = item.vals.filter(v=>v.v!=null);
+  if(!vals.length) return '';
+  const m = opts.big ? {t:16,r:52,b:26,l:46} : {t:10,r:34,b:17,l:6};
+  const iw = W-m.l-m.r, ih = H-m.t-m.b;
+  const times = vals.map(v=> new Date(v.d).getTime());
+  const t0 = Math.min(...times), t1 = Math.max(...times);
+  const X = t => vals.length===1 ? m.l+iw/2 : m.l + (t-t0)/(t1-t0||1)*iw;
+
+  // y domain covers the values and whatever bounds exist
+  let lo=Infinity, hi=-Infinity;
+  vals.forEach(v=>{ lo=Math.min(lo,v.v); hi=Math.max(hi,v.v); });
+  vals.forEach(v=>{ if(v.lo!=null){lo=Math.min(lo,v.lo);hi=Math.max(hi,v.lo);}
+                    if(v.hi!=null){lo=Math.min(lo,v.hi);hi=Math.max(hi,v.hi);} });
+  if(!(hi>lo)){ hi = lo + (Math.abs(lo)||1)*.1; lo -= (Math.abs(lo)||1)*.1; }
+  const pad = (hi-lo)*0.16; lo-=pad; hi+=pad;
+  const Y = v => m.t + ih - (v-lo)/(hi-lo)*ih;
+
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">`;
+  // reference band (one rect per distinct range, so a mid-series change is visible)
+  const segs = [];
+  vals.forEach((v,i)=>{
+    const key = v.ref||'';
+    const last = segs[segs.length-1];
+    if(last && last.key===key) last.i1 = i; else segs.push({key,i0:i,i1:i,lo:v.lo,hi:v.hi});
+  });
+  segs.forEach(sg=>{
+    if(sg.lo==null && sg.hi==null) return;
+    const yTop = Y(sg.hi!=null?sg.hi:hi), yBot = Y(sg.lo!=null?sg.lo:lo);
+    const x0 = segs.length===1 ? m.l : (sg.i0===0 ? m.l : (X(times[sg.i0-1])+X(times[sg.i0]))/2);
+    const x1 = segs.length===1 ? m.l+iw : (sg.i1===vals.length-1 ? m.l+iw : (X(times[sg.i1])+X(times[sg.i1+1]))/2);
+    s += `<rect x="${x0}" y="${yTop}" width="${Math.max(0,x1-x0)}" height="${Math.max(0,yBot-yTop)}"
+           fill="var(--band)"/>`;
+    if(sg.hi!=null) s += `<line x1="${x0}" x2="${x1}" y1="${yTop}" y2="${yTop}" stroke="var(--band-edge)" stroke-width="1"/>`;
+    if(sg.lo!=null) s += `<line x1="${x0}" x2="${x1}" y1="${yBot}" y2="${yBot}" stroke="var(--band-edge)" stroke-width="1"/>`;
+  });
+  if(opts.big){
+    s += `<line x1="${m.l}" x2="${m.l+iw}" y1="${m.t+ih}" y2="${m.t+ih}" stroke="var(--axis)" stroke-width="1"/>`;
+    // label every distinct bound, so a mid-series criterion change is readable
+    const bounds = [...new Set(segs.flatMap(sg=>[sg.lo,sg.hi]).filter(b=>b!=null))];
+    bounds.sort((a,b)=>a-b).forEach((b,i)=>{
+      if(i && Math.abs(Y(b)-Y(bounds[i-1]))<13) return;   // skip labels that would collide
+      s += `<text x="${m.l-8}" y="${Y(b)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmtNum(b)}</text>`;});
+  }
+  // line
+  if(vals.length>1){
+    s += `<path d="${vals.map((v,i)=>`${i?'L':'M'}${X(times[i])},${Y(v.v)}`).join('')}"
+           fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  // markers — surface ring keeps them legible where they cross the line
+  vals.forEach((v,i)=>{
+    const col = v.f ? 'var(--crit)' : 'var(--s1)';
+    const r = opts.big?5.5:4;
+    s += `<circle cx="${X(times[i])}" cy="${Y(v.v)}" r="${r}" fill="${col}"
+            stroke="var(--surface)" stroke-width="2"
+            data-tip="${esc(`<b>${v.d}</b><br>${disp(v)} ${esc(item.unit)} ${v.f?('· '+flagLabel(v.f)):'· 参考区间内'}<br><span style="opacity:.7">参考 ${esc(v.ref||'—')}</span>`)}"
+            style="cursor:pointer"/>`;
+  });
+  // label the endpoint only
+  const lv = vals[vals.length-1];
+  s += `<text x="${X(times[times.length-1])+9}" y="${Y(lv.v)+4}" font-size="${opts.big?13:11.5}"
+          fill="var(--ink-2)" font-weight="600">${esc(disp(lv))}</text>`;
+  if(opts.big){
+    vals.forEach((v,i)=> s += `<text x="${X(times[i])}" y="${H-7}" text-anchor="middle" font-size="11"
+        fill="var(--muted)">${v.d}</text>`);
+  }
+  s += `</svg>`;
+  return s;
+}
+
+/* One measurement only: show where it sits in its range, not a 1-point line. */
+function rangeBar(item, W=236, H=42){
+  const v = item.vals[item.vals.length-1];
+  if(v.v==null || (v.lo==null && v.hi==null)) return '';
+  const lo = v.lo!=null?v.lo:Math.min(v.v*0.6,v.v), hi = v.hi!=null?v.hi:Math.max(v.v*1.4,v.v);
+  const span = (hi-lo)||1, dmin = Math.min(lo-span*.35, v.v-span*.12), dmax = Math.max(hi+span*.35, v.v+span*.12);
+  const X = x => 4 + (x-dmin)/(dmax-dmin)*(W-8);
+  const y = 20;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">`;
+  s += `<line x1="4" x2="${W-4}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="6" stroke-linecap="round"/>`;
+  s += `<line x1="${X(lo)}" x2="${X(hi)}" y1="${y}" y2="${y}" stroke="var(--band-edge)" stroke-width="6" stroke-linecap="round"/>`;
+  s += `<circle cx="${X(v.v)}" cy="${y}" r="5.5" fill="${v.f?'var(--crit)':'var(--s1)'}" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<text x="${X(lo)}" y="${y+17}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${fmtNum(lo)}</text>`;
+  s += `<text x="${X(hi)}" y="${y+17}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${fmtNum(hi)}</text>`;
+  s += `</svg>`;
+  return s;
+}
+
+/* ============================ overview ============================ */
+function latestLabDate(){
+  return PANELS.flatMap(p=>p.dates).sort().slice(-1)[0];
+}
+function watchItems(){
+  const out = [];
+  PANELS.forEach(p=> p.items.forEach(it=>{ if(it.abn) out.push({panel:p,item:it}); }));
+  // still-abnormal first, then by how many visits were flagged
+  return out.sort((a,b)=>
+    (b.item.abnLatest - a.item.abnLatest) ||
+    (b.item.vals.filter(v=>v.f).length - a.item.vals.filter(v=>v.f).length));
+}
+function renderOverview(){
+  const el = $('#v-overview');
+  const nAbnLatest = watchItems().filter(w=>w.item.abnLatest).length;
+  const nVals = PANELS.reduce((s,p)=> s+p.items.reduce((t,i)=>t+i.vals.length,0),0);
+  const span = monthsBetween(REPORTS[REPORTS.length-1].date, REPORTS[0].date);
+  const nImgs = N_IMAGES;
+  const nExams = REPORTS.reduce((s,r)=>s+(r.merged||1),0);
+
+  let h = `<div class="tiles">
+    <div class="card tile"><div class="lab">报告条目</div><div class="val">${REPORTS.length}<small>条</small></div>
+      <div class="sub">${nExams>REPORTS.length?`共 ${nExams} 项检查 · `:''}${REPORTS[REPORTS.length-1].date} 起</div></div>
+    <div class="card tile"><div class="lab">时间跨度</div><div class="val">${span}<small>个月</small></div>
+      <div class="sub">最近 ${REPORTS[0].date}</div></div>
+    <div class="card tile"><div class="lab">化验指标</div><div class="val">${PANELS.reduce((s,p)=>s+p.items.length,0)}<small>项</small></div>
+      <div class="sub">共 ${nVals} 次测量</div></div>
+    <div class="card tile"><div class="lab">目前仍偏离</div>
+      <div class="val" style="color:${nAbnLatest?'var(--crit)':'var(--good)'}">${nAbnLatest}<small>项</small></div>
+      <div class="sub">按每项最近一次结果计</div></div>
+    <div class="card tile"><div class="lab">影像图片</div><div class="val">${nImgs}<small>张</small></div>
+      <div class="sub">已从 PDF 中提取</div></div>
+  </div>`;
+
+  // ---- watchlist
+  const w = watchItems();
+  h += `<h2 class="sec">需要关注的指标<span class="hint">曾经或目前偏离参考区间 · 点开看完整趋势</span></h2>
+        <div class="watch">`;
+  w.forEach(({panel,item})=>{
+    const lv = item.vals[item.vals.length-1];
+    const nf = item.vals.filter(v=>v.f).length;
+    h += `<div class="card wcard" data-open-item="${panel.key}||${esc(item.name)}">
+      <div class="hd"><span class="nm">${esc(item.name)}</span><span class="un">${esc(item.unit)}</span></div>
+      <div class="now"><b class="${flagCls(lv.f)}">${disp(lv)}</b>
+        ${lv.f? `<span class="badge ${flagBadge(lv.f)}">${lv.f==='H'?'↑':'↓'} ${flagLabel(lv.f)}</span>`
+              : `<span class="badge b-ok">✓ 已回到区间内</span>`}
+        <span class="spacer"></span></div>
+      <div class="ref">参考 ${esc(lv.ref||item.ref||'—')} · ${nf}/${item.vals.length} 次偏离 · ${panel.label}</div>
+      ${trendChart(item, 248, 74)}
+    </div>`;
+  });
+  h += `</div>`;
+
+  // ---- BI-RADS / TI-RADS, lifted verbatim out of the report conclusions
+  const G = GRADES;
+  if(G.length){
+    const key = g => g.sys+'||'+g.what;
+    const bySite = {};
+    G.forEach(g=> (bySite[key(g)] = bySite[key(g)]||[]).push(g));
+    const order = Object.keys(bySite).sort((a,b)=>
+      bySite[b].length-bySite[a].length || a.localeCompare(b));
+    h += `<h2 class="sec">结节分级随访<span class="hint">直接摘自各次报告结论 · 点一步看当次报告</span></h2>
+      <div style="font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--border);
+        border-radius:9px;padding:9px 13px;margin:-4px 0 12px;line-height:1.75">
+        同一部位不同日期可能来自不同检查方式（超声 / 钼靶 / MR），分级标准与观察到的病灶不一定是同一个，
+        因此这里只按时间并排列出，<b>不代表分级在变化</b>。具体请以医生解读为准。</div>
+      <div class="rads">`;
+    order.forEach(k=>{
+      const list = bySite[k].slice().sort((a,b)=> a.date<b.date?-1:1);
+      const g0 = list[0];
+      h += `<div class="card radcard"><h3>${esc(g0.what)}</h3>
+        <div class="sub">${esc(g0.sys)} · ${list.length} 次记录</div><div class="radseq">`;
+      list.forEach(g=>{
+        const hi = /^4/.test(g.grade) || /^5/.test(g.grade);
+        h += `<div class="radstep" data-open="${g.report}">
+          <span class="d">${g.date.slice(2)}</span>
+          <span class="g" style="color:${hi?'var(--crit)':'var(--ink)'}">${esc(g.grade)}</span>
+          <span class="m">${esc(modalityOf(g.name))}</span></div>`;
+      });
+      h += `</div></div>`;
+    });
+    h += `</div>`;
+  }
+
+  // ---- threads (optional; section hidden when the dataset defines none)
+  if(THREADS.length){
+    h += `<h2 class="sec">健康主线<span class="hint">同一件事的报告串起来看</span></h2><div class="threads">`;
+    THREADS.forEach(t=>{
+      h += `<div class="card thread"><h3><span>${t.icon||'•'}</span>${esc(t.title)}</h3>
+        <p>${esc(t.note)}</p><div class="chips">`;
+      (t.reports||[]).forEach(no=>{ const r=BY_NO[no]; if(!r) return;
+        h += `<button class="chip" data-open="${no}">${r.date} · ${esc(r.name.length>16?r.name.slice(0,16)+'…':r.name)}</button>`;});
+      h += `</div></div>`;
+    });
+    h += `</div>`;
+  }
+
+  // ---- timeline
+  h += `<h2 class="sec">检查时间轴<span class="hint">按检查类型分行 · 颜色表示结论状态 · 点圆点看报告</span></h2>
+    <div class="card tl-wrap">
+      <div class="legend">
+        <span><i class="lg-dot" style="background:var(--good)"></i>各项正常</span>
+        <span><i class="lg-dot" style="background:var(--warn)"></i>有结论待读</span>
+        <span><i class="lg-dot" style="background:var(--crit)"></i>有异常项</span>
+      </div>${timelineSVG()}</div>`;
+  el.innerHTML = h;
+}
+
+function modalityOf(name){
+  if(/钼靶/.test(name)) return '钼靶';
+  if(/MR/.test(name)) return 'MR';
+  if(/CT/.test(name)) return 'CT';
+  if(/彩超|超声/.test(name)) return '超声';
+  return '';
+}
+function timelineSVG(){
+  const types = ['检验报告','超声报告','放射报告','心电报告'];
+  const lanes = types.filter(t=> REPORTS.some(r=>r.type===t));
+  const W=1160, L=92, R=26, T=16, laneH=44, H=T+lanes.length*laneH+30;
+  const ts = REPORTS.map(r=>new Date(r.date).getTime());
+  let t0=Math.min(...ts), t1=Math.max(...ts);
+  const padMs = (t1-t0)*0.035; t0-=padMs; t1+=padMs;
+  const X = t => L + (t-t0)/(t1-t0)*(W-L-R);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="min-width:900px" role="img">`;
+  // quarter ticks; the year is restated at every January so no label is ambiguous
+  const marks=[];
+  const y0 = new Date(REPORTS[REPORTS.length-1].date).getFullYear();
+  const y1 = new Date(REPORTS[0].date).getFullYear();
+  for(let y=y0;y<=y1;y++) for(const mo of [0,3,6,9]){
+    const d=new Date(y,mo,1).getTime();
+    if(d>=t0&&d<=t1) marks.push({d, lab: mo===0 ? y+'年' : (mo+1)+'月'});
+  }
+  marks.forEach(mk=>{
+    s+=`<line x1="${X(mk.d)}" x2="${X(mk.d)}" y1="${T-4}" y2="${T+lanes.length*laneH-14}" stroke="var(--grid)" stroke-width="1"/>`;
+    s+=`<text x="${X(mk.d)}" y="${H-11}" text-anchor="middle" font-size="11" fill="var(--muted)">${mk.lab}</text>`;
+  });
+  lanes.forEach((ty,li)=>{
+    const y = T + li*laneH + 16;
+    s += `<text x="${L-12}" y="${y+4}" text-anchor="end" font-size="12" fill="var(--ink-2)" font-weight="600">${ty}</text>`;
+    s += `<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    // same-day reports stack, centred on the lane so they never reach the lane above
+    const rs = REPORTS.filter(r=>r.type===ty).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const total = {}, used = {};
+    rs.forEach(r=>{ const k=Math.round(X(new Date(r.date).getTime())); total[k]=(total[k]||0)+1; });
+    rs.forEach(r=>{
+      const t = new Date(r.date).getTime();
+      const k = Math.round(X(t)); used[k]=(used[k]||0)+1;
+      const n = total[k], step = Math.min(11, (laneH-14)/Math.max(1,n-1));
+      const off = (used[k]-1 - (n-1)/2) * step;
+      s += `<circle cx="${X(t)}" cy="${y-off}" r="6" fill="${STATUS_COLOR[r.status]||'var(--muted)'}"
+              stroke="var(--surface)" stroke-width="2" style="cursor:pointer" data-open="${r.no}"
+              data-tip="${esc(`<b>${r.date}</b> · ${esc(r.type)}<br>${esc(r.name)}<br><span style="opacity:.75">${esc(r.status)} — 点击查看</span>`)}"/>`;
+    });
+  });
+  s += `</svg>`;
+  return s;
+}
+
+/* ============================ trends ============================ */
+let trendState = {panel:'cbc', onlyAbn:false, q:''};
+function renderTrends(){
+  const el = $('#v-trends');
+  let h = `<div class="toolbar">
+    <div class="seg" id="panelseg">${PANELS.map(p=>
+      `<button data-p="${p.key}" aria-pressed="${p.key===trendState.panel}">${esc(p.label)}
+        <span style="opacity:.55">${p.items.length}</span></button>`).join('')}</div>
+    <div class="seg"><button id="abnbtn" aria-pressed="${trendState.onlyAbn}">只看偏离项</button></div>
+    <input type="search" id="tq" placeholder="搜索指标…" value="${esc(trendState.q)}">
+  </div>`;
+  const p = PANEL_BY_KEY[trendState.panel];
+  let items = p.items;
+  if(trendState.onlyAbn) items = items.filter(i=>i.abn);
+  if(trendState.q){ const q=trendState.q.toLowerCase(); items = items.filter(i=>i.name.toLowerCase().includes(q)); }
+
+  if(!items.length){ h += `<div class="emptynote">没有匹配的指标。</div>`; }
+  else{
+    // every small multiple below shares one time axis, so state it once here
+    // instead of repeating date labels on 39 sparklines
+    if(!p.numericCount) h += `<div class="axisnote">这组是定性结果（阴性/阳性一类），没有可画的数值趋势，
+      下表按检查日期并排列出每一项。</div>`;
+    else h += p.dates.length>1
+      ? `<div class="axisnote">每张小图的横轴都是这几次化验：
+          ${p.dates.map(d=>`<b>${d}</b>`).join('<span class="ar">→</span>')}
+          　·　绿色带为参考区间，红点表示该次偏离</div>`
+      : `<div class="axisnote">这组化验只做过一次（<b>${p.dates[0]}</b>），
+          因此下面显示的是每项在参考区间中的位置，绿色段为参考区间</div>`;
+    const groups = p.groups ? p.groups : [null];
+    groups.forEach(g=>{
+      const gi = g==null ? items : items.filter(i=>i.group===g);
+      if(!gi.length) return;
+      const num = gi.filter(it=>it.numeric);
+      if(g && (num.length || !p.numericCount)) h += `<div class="grpttl">${esc(g)}</div>`;
+      if(num.length) h += `<div class="mult">` + num.map(it=>mcard(p,it)).join('') + `</div>`;
+    });
+    h += `<h2 class="sec">全部数值<span class="hint">${esc(p.label)} · 按检查日期排列</span></h2>` + panelTable(p, items);
+  }
+  el.innerHTML = h;
+}
+function mcard(p,it){
+  const vals = it.vals, lv = vals[vals.length-1], pv = vals.length>1?vals[vals.length-2]:null;
+  let delta = '';
+  if(pv && pv.v!=null && lv.v!=null){
+    const d = lv.v-pv.v;
+    const pct = pv.v!==0 ? (d/Math.abs(pv.v)*100) : null;
+    const cls = Math.abs(d)<1e-9 ? '' : (d>0?'up':'dn');
+    delta = `<span class="dl ${cls}">${d>0?'▲':d<0?'▼':'＝'} ${fmtNum(Math.abs(d))}${pct!=null?` (${Math.abs(pct).toFixed(0)}%)`:''}</span>`;
+  }
+  const chart = lv.v==null ? `<div style="font-size:13px;color:var(--ink-2);padding:12px 0 14px">${esc(lv.t||'')}</div>`
+              : (vals.filter(v=>v.v!=null).length>1 ? trendChart(it,248,78) : rangeBar(it));
+  return `<div class="card mcard" data-open-item="${p.key}||${esc(it.name)}">
+    <div class="hd"><span class="nm">${esc(it.name)}</span><span class="un">${esc(it.unit||'')}</span></div>
+    <div class="now"><b class="${flagCls(lv.f)}">${esc(disp(lv))}</b>
+      ${lv.f?`<span class="badge ${flagBadge(lv.f)}">${lv.f==='H'?'↑':'↓'}${flagLabel(lv.f)}</span>`:''}
+      ${delta}</div>
+    ${chart}</div>`;
+}
+function panelTable(p, items){
+  let h = `<div class="tblwrap"><table class="grid"><thead><tr><th>指标</th><th>单位</th>
+    ${p.dates.map(d=>`<th>${d}</th>`).join('')}<th>参考区间</th></tr></thead><tbody>`;
+  let lastG = null;
+  items.forEach(it=>{
+    if(it.group && it.group!==lastG){ lastG=it.group;
+      h += `<tr class="rowgrp"><td colspan="${p.dates.length+3}">${esc(it.group)}</td></tr>`; }
+    const byD = Object.fromEntries(it.vals.map(v=>[v.d,v]));
+    h += `<tr><td>${esc(it.name)}</td><td class="ref">${esc(it.unit||'')}</td>`;
+    p.dates.forEach(d=>{ const v=byD[d];
+      h += `<td class="${v?flagCls(v.f):''}">${v? esc(disp(v)) + flagMark(v.f) : '—'}</td>`;});
+    h += `<td class="ref">${esc(it.ref||'—')}${it.refVaries?' <span title="不同报告的参考区间不一致">*</span>':''}</td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+  if(items.some(i=>i.refVaries)) h += `<div style="font-size:12.5px;color:var(--muted);margin-top:8px">
+    * 该项在不同报告中给出的参考区间不同，图表按每次化验各自的区间绘制。</div>`;
+  return h;
+}
+
+/* item detail modal */
+function openItem(pkey,name){
+  const p = PANEL_BY_KEY[pkey]; const it = p.items.find(i=>i.name===name); if(!it) return;
+  const multi = it.vals.filter(v=>v.v!=null).length>1;
+  let h = `<button class="modal-x" data-close>×</button>
+    <div style="font-size:12.5px;color:var(--muted);letter-spacing:.05em">${esc(p.label)}</div>
+    <h3 style="margin:3px 0 2px;font-size:20px;font-weight:640">${esc(it.name)}
+      <span style="font-size:13.5px;color:var(--muted);font-weight:400">${esc(it.unit||'')}</span></h3>
+    <div style="color:var(--ink-2);font-size:13.5px;margin-bottom:14px">参考区间 ${esc(it.ref||'—')}${
+      it.refVaries?'　<span style="color:var(--warn)">（不同报告的区间不一致，见下表）</span>':''}</div>`;
+  h += multi ? trendChart(it, 840, 300, {big:true})
+             : `<div style="max-width:420px">${rangeBar(it,420,52)}</div>`;
+  h += `<div class="tblwrap" style="margin-top:18px"><table class="grid"><thead><tr>
+      <th>日期</th><th>结果</th><th>状态</th><th>参考区间</th><th>来源报告</th></tr></thead><tbody>`;
+  it.vals.forEach(v=>{
+    const r = v.src?BY_NO[v.src]:null;
+    h += `<tr><td>${v.d}</td><td class="${flagCls(v.f)}">${esc(disp(v))}</td>
+      <td>${v.f?`<span class="badge ${flagBadge(v.f)}">${flagArrow(v.f)}${flagLabel(v.f)}</span>`
+              :`<span class="badge b-ok">正常</span>`}</td>
+      <td class="ref">${esc(v.ref||'—')}</td>
+      <td>${r?`<button class="chip" data-open="${r.no}" data-mark="${p.key}||${esc(it.name)}">${esc(r.name.length>18?r.name.slice(0,18)+'…':r.name)}</button>`:'—'}</td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+  $('#modal-in').innerHTML = h; $('#modal').classList.add('on'); syncOverlays();
+}
+
+/* ============================ reports ============================ */
+let repState = {type:'全部', year:'全部', status:'全部', q:''};
+function renderReports(){
+  const types = ['全部',...new Set(REPORTS.map(r=>r.type))];
+  const years = ['全部',...new Set(REPORTS.map(r=>r.date.slice(0,4)))].sort((a,b)=>a==='全部'?-1:b==='全部'?1:b.localeCompare(a));
+  const stats = ['全部',...new Set(REPORTS.map(r=>r.status))];
+  let h = `<div class="toolbar">
+    <div class="seg">${types.map(t=>`<button data-f="type" data-v="${esc(t)}" aria-pressed="${repState.type===t}">${esc(t)}</button>`).join('')}</div>
+    <div class="seg">${years.map(t=>`<button data-f="year" data-v="${esc(t)}" aria-pressed="${repState.year===t}">${esc(t)}</button>`).join('')}</div>
+    <div class="seg">${stats.map(t=>`<button data-f="status" data-v="${esc(t)}" aria-pressed="${repState.status===t}">${esc(t)}</button>`).join('')}</div>
+    <input type="search" id="rq" placeholder="搜索名称 / 结论 / 所见…" value="${esc(repState.q)}" style="min-width:230px">
+  </div>`;
+  let list = REPORTS.filter(r=>
+    (repState.type==='全部'||r.type===repState.type) &&
+    (repState.year==='全部'||r.date.startsWith(repState.year)) &&
+    (repState.status==='全部'||r.status===repState.status));
+  if(repState.q){ const q=repState.q.toLowerCase();
+    list = list.filter(r=> (r.name+r.conclusion+(r.findings||'')).toLowerCase().includes(q)); }
+  h += `<div style="font-size:13px;color:var(--muted);margin:-6px 0 14px">共 ${list.length} 份报告</div>`;
+  if(!list.length) h += `<div class="emptynote">没有匹配的报告。</div>`;
+  let year=null;
+  list.forEach(r=>{
+    if(r.date.slice(0,4)!==year){ if(year!==null) h+=`</div>`; year=r.date.slice(0,4);
+      h += `<div class="yhead">${year} 年</div><div class="rlist">`; }
+    h += rcard(r);
+  });
+  if(year!==null) h+=`</div>`;
+  $('#v-reports').innerHTML = h;
+}
+function reportImages(r){                 // every image belonging to a report
+  return allImages().filter(g=> g.no===r.no);
+}
+function rcard(r){
+  const imgs = reportImages(r);
+  return `<div class="card rcard" data-open="${r.no}">
+    <div class="rt"><span class="nm">${esc(r.name)}</span>
+      <span class="badge ${STATUS_BADGE[r.status]||'b-soft'}">${esc(r.status)}</span></div>
+    <div class="meta"><span>${r.date}</span><span>·</span><span>${esc(r.type)}</span>
+      ${imgs.length?`<span>·</span><span>${imgs.length} 张图</span>`:''}
+      ${r.merged>1?`<span>·</span><span>合并 ${r.merged} 项</span>`:''}</div>
+    <div class="cc">${esc(r.conclusion)}</div>
+    ${imgs.length?`<div class="thumbs">${imgs.slice(0,5).map(i=>`<img src="${ASSETS[i.k]}" alt="" loading="lazy">`).join('')}</div>`:''}
+  </div>`;
+}
+
+/* ============================ gallery ============================ */
+let GAL = [];
+function renderGallery(){
+  GAL = allImages();
+  const byRep = {};
+  GAL.forEach((g,idx)=> (byRep[g.no]=byRep[g.no]||[]).push({...g, idx}));
+  const reps = Object.keys(byRep).sort((x,y)=>{
+    const dx=(BY_NO[x]||{}).date||'', dy=(BY_NO[y]||{}).date||''; return dx<dy?1:dx>dy?-1:0; });
+
+  const note = DATA.galleryNote ||
+    `以下 ${GAL.length} 张图片直接从报告 PDF 中提取（已剔除医院印章、二维码与医生签名）。`;
+  let h = `<div style="font-size:13.5px;color:var(--ink-2);margin-bottom:18px;line-height:1.75">${note}</div>`;
+
+  reps.forEach(no=>{
+    const r = BY_NO[no];
+    h += `<h2 class="sec">${esc(r? r.name : no)}<span class="hint">${r?r.date:''} ·
+      ${byRep[no].length} 张 ·
+      <button class="chip" data-open="${no}" style="margin-left:4px">打开报告</button></span></h2>
+      <div class="gal">`;
+    byRep[no].forEach(g=>{
+      h += `<div class="gitem" data-lb="${g.idx}"><img src="${ASSETS[g.k]}" alt="${esc(g.cap)}" loading="lazy">
+        <div class="cap">${esc(g.cap)}</div></div>`;
+    });
+    h += `</div>`;
+  });
+  if(!GAL.length) h = `<div class="emptynote">这批报告的 PDF 里没有可提取的诊断图像。原件页面可在「报告库」中逐页查看。</div>`;
+  $('#v-gallery').innerHTML = h;
+}
+let lbIdx = 0, lbList = [];
+function openLB(list, i){
+  lbList = list; lbIdx = i;
+  const g = lbList[lbIdx];
+  const r = BY_NO[g.no];
+  $('#lb-in').innerHTML = `<img src="${ASSETS[g.k]}" alt="${esc(g.cap)}">
+    <div class="lb-cap"><b>${esc(g.cap)}</b><br>
+      ${r?`${esc(r.name)} · ${r.date} · ${lbIdx+1}/${lbList.length}`:''}</div>
+    ${lbList.length>1?`<button class="lb-nav lb-prev" data-lb-step="-1">‹</button>
+      <button class="lb-nav lb-next" data-lb-step="1">›</button>`:''}`;
+  $('#lightbox').classList.add('on');
+}
+
+/* ============================ compare ============================ */
+/* One check-up is spread over several days here (bloods Thursday, ultrasound the
+   following week), so comparison works on visit clusters rather than raw dates. */
+const CLUSTERS = DATA.clusters || [];
+const clusterOf = d => CLUSTERS.find(c=> c.dates.includes(d));
+let cmpState = null;
+function renderCompare(){
+  if(!CLUSTERS.length){ $('#v-compare').innerHTML = `<div class="emptynote">没有可对比的化验。</div>`; return; }
+  if(!cmpState){
+    // the newest visit may hold a single test (a lone breath test), which would make
+    // the default comparison empty — open on the earliest and latest substantial ones
+    const size = c => PANELS.reduce((n,p)=> n + p.items.filter(it=>
+      it.vals.some(v=> c.dates.includes(v.d))).length, 0);
+    const rich = CLUSTERS.filter(c=> size(c) >= 10);
+    const pool = rich.length >= 2 ? rich : CLUSTERS;
+    cmpState = {a: pool[0].id, b: pool[pool.length-1].id};
+  }
+  const CA = CLUSTERS.find(c=>c.id===cmpState.a) || CLUSTERS[0];
+  const CB = CLUSTERS.find(c=>c.id===cmpState.b) || CLUSTERS[CLUSTERS.length-1];
+  const opt = (sel)=> CLUSTERS.map(c=>
+    `<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.label)}（${esc(c.span)}）</option>`).join('');
+  let h = `<div class="cmp-head">
+    <select id="cmpa">${opt(CA.id)}</select><span class="arrowbig">→</span>
+    <select id="cmpb">${opt(CB.id)}</select>
+    <span style="color:var(--muted);font-size:13px">只列出两次都测过的指标</span></div>`;
+  // only explain "batching" when a visit actually spans multiple days
+  if(CLUSTERS.some(c=>c.dates.length>1))
+    h += `<div style="font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--border);
+      border-radius:9px;padding:8px 13px;margin:-6px 0 16px;line-height:1.7">
+      一次体检的抽血与检查常分散在几天内，这里按「体检批次」归并：
+      ${esc(CA.label)} = ${esc(CA.span)}，${esc(CB.label)} = ${esc(CB.span)}。</div>`;
+
+  const pick = (it, C)=> it.vals.find(v=> C.dates.includes(v.d));
+  const rows = [];
+  PANELS.forEach(p=> p.items.forEach(it=>{
+    const a = pick(it, CA), b = pick(it, CB);
+    if(!a||!b) return;
+    if(a.v==null||b.v==null){ rows.push({p,it,a,b,d:null,pct:null}); return; }
+    const d = b.v-a.v, pct = a.v!==0 ? d/Math.abs(a.v)*100 : null;
+    rows.push({p,it,a,b,d,pct});
+  }));
+  if(!rows.length){ $('#v-compare').innerHTML = h + `<div class="emptynote">这两次体检没有共同的指标。</div>`; return; }
+
+  const movers = rows.filter(r=>r.pct!=null).slice().sort((x,y)=>Math.abs(y.pct)-Math.abs(x.pct)).slice(0,6);
+  if(movers.length){
+    h += `<h2 class="sec">变化最大的指标<span class="hint">按相对变化幅度排序</span></h2><div class="movers">`;
+    movers.forEach(r=>{
+      h += `<div class="card mv" data-open-item="${r.p.key}||${esc(r.it.name)}" style="cursor:pointer">
+        <div class="l">${esc(r.it.name)}<small>${esc(r.p.label)} ${esc(r.it.unit||'')}</small></div>
+        <div class="r">${esc(disp(r.a))} → <b class="${flagCls(r.b.f)}">${esc(disp(r.b))}</b>
+          <div style="font-size:12.5px;color:var(--ink-2)">${r.d>0?'▲':r.d<0?'▼':'＝'} ${Math.abs(r.pct).toFixed(0)}%</div></div></div>`;
+    });
+    h += `</div>`;
+  }
+
+  h += `<h2 class="sec">全部对比<span class="hint">${esc(CA.label)} → ${esc(CB.label)} · ${rows.length} 项</span></h2>
+    <div class="tblwrap"><table class="grid"><thead><tr><th>指标</th><th>单位</th>
+      <th>${esc(CA.label)}</th><th>${esc(CB.label)}</th><th>变化</th><th>幅度</th><th>参考区间</th></tr></thead><tbody>`;
+  let lastP=null;
+  rows.forEach(r=>{
+    if(r.p.label!==lastP){ lastP=r.p.label; h+=`<tr class="rowgrp"><td colspan="7">${esc(r.p.label)}</td></tr>`; }
+    const flat = r.d==null || Math.abs(r.d)<1e-9;
+    h += `<tr><td>${esc(r.it.name)}</td><td class="ref">${esc(r.it.unit||'')}</td>
+      <td class="${flagCls(r.a.f)}">${esc(disp(r.a))}${flagMark(r.a.f)}</td>
+      <td class="${flagCls(r.b.f)}">${esc(disp(r.b))}${flagMark(r.b.f)}</td>
+      <td class="dcell ${flat?'d-flat':''}">${r.d==null?'—':(r.d>0?'+':'')+fmtNum(r.d)}</td>
+      <td class="dcell ${flat?'d-flat':''}">${r.pct==null?'—':(r.pct>0?'+':'')+r.pct.toFixed(1)+'%'}</td>
+      <td class="ref">${esc(r.b.ref||r.it.ref||'—')}</td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+  $('#v-compare').innerHTML = h;
+}
+
+/* ============================ report drawer ============================ */
+const pdfUrls = {};
+function pdfUrl(no){
+  if(pdfUrls[no]) return pdfUrls[no];
+  const bin = atob(ASSETS['pdf'+no]);
+  const u8 = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return (pdfUrls[no] = URL.createObjectURL(new Blob([u8], {type:'application/pdf'})));
+}
+function openPdf(no){
+  // A file:// page can't be relied on to render a PDF inline, so fall back to
+  // saving it whenever the browser refuses to open the blob in a tab.
+  let w = null;
+  try{ w = window.open(pdfUrl(no), '_blank'); }catch(e){}
+  if(!w || w.closed || typeof w.closed==='undefined') downloadPdf(no);
+}
+function downloadPdf(no){
+  const a = document.createElement('a');
+  a.href = pdfUrl(no); a.download = (MAN[no]||{}).file || (no+'.pdf');
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function openReport(no, mark){   // mark = 'panelKey||itemName' to highlight,
+                                 // set when opened from an indicator's trend
+  const r = BY_NO[no]; if(!r) return;
+  const m = MAN[no] || {pages:[], imgs:[]};
+  const rp = null;
+  let h = `<div class="dhead">
+      <div style="flex:1">
+        <h3>${esc(r.name)}</h3>
+        <div style="font-size:13px;color:var(--muted)">${r.date} · ${esc(r.type)} · ${esc(DATA.patient.hospital)}</div>
+      </div>
+      <span class="badge ${STATUS_BADGE[r.status]||'b-soft'}">${esc(r.status)}</span>
+      <button class="iconbtn" data-close-drawer title="关闭">✕</button>
+    </div><div class="dbody">`;
+
+  if(r.merged>1) h += `<div class="dsec"><h4>本次共 ${r.merged} 项检查</h4>
+    <div class="chips">${r.exams.map(e=>`<span class="chip" style="cursor:default">${esc(e)}</span>`).join('')}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7">
+      医院对这几项出具的是一份合并报告，下面的所见与结论对这几项检查是同一份内容。</div></div>`;
+  if(r.conclusion) h += `<div class="dsec"><h4>诊断结论</h4><p class="concl">${esc(r.conclusion)}</p></div>`;
+  if(r.findings) h += `<div class="dsec"><h4>检查所见</h4><p>${esc(r.findings)}</p></div>`;
+  if(r.abnItems && r.abnItems.length) h += `<div class="dsec"><h4>本次偏离项</h4>
+    <div class="chips">${r.abnItems.map(a=>
+      `<span class="badge ${flagBadge(a.f)}">${esc(a.name)} ${esc(a.t)}${flagMark(a.f)}</span>`).join(' ')}</div></div>`;
+
+  const srcNos = new Set(r.sources.map(x=>x.no));
+  const labRows = [];
+  PANELS.forEach(p=> p.items.forEach(it=> it.vals.forEach(v=>{
+    if(srcNos.has(v.src)) labRows.push({p,it,v});
+  })));
+  if(labRows.length){
+    const nab = labRows.filter(x=>x.v.f).length;
+    h += `<div class="dsec"><h4>本次化验明细<span style="font-weight:400;letter-spacing:0">
+        　${labRows.length} 项，${nab} 项偏离</span></h4>
+      <div class="tblwrap"><table class="grid"><thead><tr><th>指标</th><th>结果</th><th>单位</th><th>参考区间</th></tr></thead><tbody>`;
+    labRows.forEach(({p,it,v})=>{
+      const key = p.key+'||'+it.name, hit = mark===key;
+      h += `<tr style="cursor:pointer" class="${hit?'markrow':''}" data-open-item="${key}">
+        <td>${esc(it.name)}${hit?'<span class="marktag">当前指标</span>':''}</td>
+        <td class="${flagCls(v.f)}">${esc(disp(v))}${flagMark(v.f)}</td>
+        <td class="ref">${esc(it.unit||'')}</td><td class="ref">${esc(v.ref||it.ref||'—')}</td></tr>`;});
+    h += `</tbody></table></div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:7px">点任意一行查看该指标的历次趋势。</div></div>`;
+  }
+
+  // images attached directly to this report (no separate 图文 document)
+  if(r.imgs && r.imgs.length){
+    h += `<div class="dsec"><h4>报告内图像　${r.imgs.length} 张</h4><div class="gal-sm">`;
+    r.imgs.forEach((i,k)=> h += `<div class="gitem" data-lb-report="${r.no}||${k}">
+        <img src="${ASSETS[i.k]}" alt="${esc(i.cap||'')}"><div class="cap">${esc(i.cap||'')}</div></div>`);
+    h += `</div></div>`;
+  }
+
+  // one entry can cover several exams of one session, each with its own sheet
+  h += `<div class="dsec"><h4>报告原件　${r.sources.length} 份</h4>`;
+  r.sources.forEach(sc=>{
+    const mm = MAN[sc.no] || {pages:[]};
+    h += `<div class="srcbox">
+      <div class="srchd"><span>${esc(sc.name)}</span>
+        <span class="btnrow">
+          <button class="btn sm primary" data-dl="${sc.no}">下载 PDF</button>
+          <button class="btn sm" data-pdf="${sc.no}">新标签页</button>
+        </span></div>
+      <div class="pageimgs">${mm.pages.map((k,i)=>
+        `<img src="${ASSETS[k]}" alt="第${i+1}页" data-lb-page="${sc.no}||${i}">`).join('')}</div>
+    </div>`;
+  });
+  h += `</div>`;
+
+  (r.tw||[]).forEach(tid=>{
+    const t = MAN[tid]; if(!t) return;
+    h += `<div class="dsec"><h4>图文报告　${t.imgs.length?t.imgs.length+' 张图 · ':''}${t.pages.length} 页</h4>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.7">
+        医院出具的图文报告原件${t.exams&&t.exams.length?`，涵盖 ${esc(t.exams.join('、'))}`:''}。
+        ${t.aliases&&t.aliases.length>1?`本次同一份图文报告在导出包里被复制成 ${t.aliases.length} 个文件名，这里只保留一份。`:''}
+      </div>
+      <div class="btnrow" style="margin-bottom:12px">
+        <button class="btn primary" data-dl="${tid}">下载图文 PDF</button>
+        <button class="btn" data-pdf="${tid}">新标签页打开</button>
+      </div>`;
+    if(t.imgs.length){
+      h += `<div class="gal-sm">` + t.imgs.map((i,k)=>
+        `<div class="gitem" data-lb-local="${tid}||${k}">
+           <img src="${ASSETS[i.k]}" alt="${esc(i.cap)}">
+           <div class="cap">${esc(i.cap)}</div></div>`).join('') + `</div>`;
+    }
+    h += `<div class="pageimgs" style="margin-top:10px">${t.pages.map((k,i)=>
+      `<img src="${ASSETS[k]}" alt="图文第${i+1}页" data-lb-page="${tid}||${i}">`).join('')}</div>
+      </div>`;
+  });
+  h += `</div>`;
+
+  $('#drawer-content').innerHTML = h;
+  $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden','false');
+  $('#scrim').classList.add('on');
+  syncOverlays();
+  $('.dbody').scrollTop = 0;
+  // arrived from an indicator's trend: bring that row into view instead of making the
+  // reader hunt through 20-30 rows (offsetTop is unreliable here, so use rects)
+  const mrow = $('.dbody tr.markrow');
+  if(mrow){
+    const db = $('.dbody');
+    db.scrollTop += mrow.getBoundingClientRect().top - db.getBoundingClientRect().top
+                    - db.clientHeight/2 + mrow.offsetHeight/2;
+  }
+}
+/* --- modal + drawer: when both are open, lay them out side by side -------------
+   modal left / drawer right, both fully usable — that is what lets you click one
+   来源报告 after another and watch the drawer update in place. Either one alone
+   behaves as a normal centred modal / sliding drawer. */
+let unfrontTimer = null;
+function syncOverlays(){
+  const md=$('#modal'), dr=$('#drawer'), sc=$('#scrim');
+  const both = md.classList.contains('on') && dr.classList.contains('on');
+  clearTimeout(unfrontTimer);
+  md.classList.toggle('split', both);
+  sc.classList.toggle('split', both);     // scrim hidden so it cannot block the modal
+  dr.classList.toggle('front', both);     // drawer above the full-viewport modal layer
+  sc.classList.toggle('front', both);
+}
+function closeModal(){
+  $('#modal').classList.remove('on'); $('#modal').classList.remove('split');
+  syncOverlays();
+}
+function closeDrawer(){
+  $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden','true');
+  $('#scrim').classList.remove('on');
+  // the modal grows straight back to centred; keep the drawer's raised z-index until
+  // it has finished sliding out (.22s) so it never slips behind mid-animation
+  $('#modal').classList.remove('split'); $('#scrim').classList.remove('split');
+  clearTimeout(unfrontTimer);
+  unfrontTimer = setTimeout(()=>{
+    $('#drawer').classList.remove('front'); $('#scrim').classList.remove('front');
+  }, 240);
+}
+
+/* ============================ nav & events ============================ */
+const VIEWS = [
+  {id:'overview', label:'概览', render:renderOverview},
+  {id:'trends',   label:'化验趋势', render:renderTrends},
+  {id:'reports',  label:'报告库', render:renderReports},
+  {id:'gallery',  label:'影像图库', render:renderGallery},
+  {id:'compare',  label:'对比分析', render:renderCompare},
+];
+let curView = 'overview';
+function go(id){
+  curView = id;
+  $('#nav').innerHTML = VIEWS.map(v=>
+    `<button role="tab" data-go="${v.id}" aria-selected="${v.id===id}">${v.label}</button>`).join('');
+  VIEWS.forEach(v=> $('#v-'+v.id).hidden = v.id!==id);
+  const v = VIEWS.find(v=>v.id===id); v.render();
+  window.scrollTo({top:0});
+}
+function rerenderCharts(){ VIEWS.find(v=>v.id===curView).render(); }
+
+document.addEventListener('click', e=>{
+  const t = e.target;
+  const nav = t.closest('[data-go]');            if(nav) return go(nav.dataset.go);
+  if(t.closest('[data-close-drawer]') || t.id==='scrim') return closeDrawer();
+  if(t.closest('[data-close]') || t.classList.contains('modal-bd')){
+    closeModal(); $('#lightbox').classList.remove('on'); return; }
+  const step = t.closest('[data-lb-step]');
+  if(step){ openLB(lbList, (lbIdx + +step.dataset.lbStep + lbList.length) % lbList.length); return; }
+  const lb = t.closest('[data-lb]');             if(lb) return openLB(GAL, +lb.dataset.lb);
+  const lbl = t.closest('[data-lb-local]');
+  if(lbl){ const [no,k] = lbl.dataset.lbLocal.split('||');
+    const list = MAN[no].imgs.map(i=>({...i,no})); return openLB(list, +k); }
+  const lbr = t.closest('[data-lb-report]');
+  if(lbr){ const [no,k] = lbr.dataset.lbReport.split('||');
+    const list = BY_NO[no].imgs.map(i=>({...i,no})); return openLB(list, +k); }
+  const lbp = t.closest('[data-lb-page]');
+  if(lbp){ const [no,i] = lbp.dataset.lbPage.split('||');
+    const list = MAN[no].pages.map((k,j)=>({k, no, cap:`原始报告 第 ${j+1} 页`}));
+    return openLB(list, +i); }
+  const pdf = t.closest('[data-pdf]');           if(pdf) return openPdf(pdf.dataset.pdf);
+  const dl  = t.closest('[data-dl]');            if(dl)  return downloadPdf(dl.dataset.dl);
+  const oi  = t.closest('[data-open-item]');
+  if(oi){ const [pk,nm] = oi.dataset.openItem.split('||'); return openItem(pk,nm); }
+  const op  = t.closest('[data-open]');          if(op)  return openReport(op.dataset.open, op.dataset.mark || null);
+  const seg = t.closest('#panelseg button');
+  if(seg){ trendState.panel = seg.dataset.p; return renderTrends(); }
+  if(t.id==='abnbtn'){ trendState.onlyAbn = !trendState.onlyAbn; return renderTrends(); }
+  const f = t.closest('[data-f]');
+  if(f){ repState[f.dataset.f] = f.dataset.v; return renderReports(); }
+});
+document.addEventListener('input', e=>{
+  if(e.target.id==='tq'){ trendState.q = e.target.value;
+    renderTrends(); const i=$('#tq'); if(i){i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }
+  if(e.target.id==='rq'){ repState.q = e.target.value;
+    renderReports(); const i=$('#rq'); if(i){i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }
+});
+document.addEventListener('change', e=>{
+  if(e.target.id==='cmpa'){ cmpState.a = e.target.value; renderCompare(); }
+  if(e.target.id==='cmpb'){ cmpState.b = e.target.value; renderCompare(); }
+});
+document.addEventListener('mouseover', e=>{
+  const el = e.target.closest('[data-tip]');
+  if(el) showTip(el.dataset.tip, e.clientX, e.clientY);
+});
+document.addEventListener('mousemove', e=>{
+  const el = e.target.closest('[data-tip]');
+  if(el) showTip(el.dataset.tip, e.clientX, e.clientY); else hideTip();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    const dr=$('#drawer'), md=$('#modal');
+    if($('#lightbox').classList.contains('on')) $('#lightbox').classList.remove('on');
+    else if(dr.classList.contains('on') && (dr.classList.contains('front') || !md.classList.contains('on'))) closeDrawer();
+    else if(md.classList.contains('on')) closeModal();
+    else closeDrawer();
+  }
+  if($('#lightbox').classList.contains('on') && lbList.length>1){
+    if(e.key==='ArrowLeft')  openLB(lbList,(lbIdx-1+lbList.length)%lbList.length);
+    if(e.key==='ArrowRight') openLB(lbList,(lbIdx+1)%lbList.length);
+  }
+});
+
+/* ============================ boot ============================ */
+const P = DATA.patient;
+$('#who').innerHTML = `<b>${esc(P.name)}</b>${P.sex?' · '+esc(P.sex):''}${P.age?' · '+(typeof P.age==='number'? P.age+'岁' : esc(P.age)):''}${P.hospital?' · '+esc(P.hospital):''}`;
+document.title = `健康档案${P.name?' · '+P.name:''}`;
+// Optional DATA.banner — a string, or {title, text}. Hidden when absent, so this
+// changes nothing for a normal build; the demo page uses it for its 虚构数据 notice.
+if(DATA.banner){
+  const bn = typeof DATA.banner === 'string' ? {text:DATA.banner} : DATA.banner;
+  $('#banner').innerHTML = (bn.title ? `<b>${esc(bn.title)}</b>　` : '') + esc(bn.text||'');
+  $('#banner').hidden = false;
+}
+// The source/QA notes are dataset-specific, so they come from DATA.footNotes
+// (an array of {label, text}); the privacy + disclaimer lines are always appended.
+const foot = (DATA.footNotes||[]).map(n=>`<b>${esc(n.label)}</b>　${esc(n.text)}`);
+foot.push('<b>本地私有</b>　全部内容（含 PDF 原件与图片）已内嵌在这一个文件里，打开后不联网、不上传任何数据。');
+foot.push('<b>请注意</b>　本页面只是把已有报告重新组织展示，不构成任何医学诊断或建议，具体解读请以医生意见为准。');
+$('#foot').innerHTML = foot.join('<br>');
+go('overview');
+</script>
+</body>
+</html>

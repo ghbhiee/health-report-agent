@@ -1,0 +1,43 @@
+# ---- 用户数据：永远不进 git ----------------------------------------------
+# workspace/ 是用户放自己体检报告的地方。整个目录排除，只保留占位文件。
+workspace/*
+!workspace/.gitkeep
+!workspace/inbox/
+!workspace/raw/
+!workspace/out/
+workspace/inbox/*
+workspace/raw/*
+workspace/out/*
+!workspace/*/.gitkeep
+
+# 产物 HTML 一律不进 git（唯一例外是合成的 demo 页）
+*.html
+!template/app_template.html
+!demo/index.html
+# GitHub Pages 根跳转页（注释必须独占一行，否则会被当成 pattern 的一部分）
+!/index.html
+
+# 生成的中间数据
+data.json
+assets.json
+*.pdf
+*.zip
+
+# ---- 本项目的内部交接稿，不对外 --------------------------------------------
+HANDOFF.md
+
+# ---- 常规 ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+.idea/
+.vscode/
+
+# AI 原图缓存：只是为了本地重跑水印时不必重新调 API，不进仓库
+demo/.raw_cache/
+
+# 介绍视频的 HyperFrames 工程：本地构建目录，35MB 且其中的 .html 会被上面的规则排除
+# （提交它只会得到一个跑不起来的半成品）。成片本身在 media/ 里，是提交的。
+videos/

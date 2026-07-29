@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>health-report-agent · 把体检报告变成一个健康看板</title>
+<meta name="description" content="把散落各处的体检、检验、影像报告，变成一个双击就能打开的单文件 HTML 健康看板。开源，全程本地。">
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --border:rgba(11,11,11,.10); --accent:#2a78d6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+      --border:rgba(255,255,255,.12); --accent:#3987e5; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);
+    font:16px/1.75 system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  main{max-width:56em;margin:0 auto;padding:7vh 1.5em 6em}
+  h1{font-size:clamp(26px,4.4vw,40px);line-height:1.25;letter-spacing:-.02em;margin:0 0 .4em;font-weight:680}
+  .lede{font-size:clamp(16px,2.1vw,19px);color:var(--ink-2);margin:0 0 2em;max-width:38em}
+  .en{color:var(--muted);font-size:15px;margin-top:.5em}
+  video{width:100%;border-radius:14px;border:1px solid var(--border);background:#000;display:block;
+    box-shadow:0 1px 2px rgba(11,11,11,.05),0 10px 34px rgba(11,11,11,.10)}
+  figure{margin:0 0 1em}
+  figcaption{color:var(--muted);font-size:13.5px;margin-top:.7em}
+  .cta{display:flex;gap:.7em;flex-wrap:wrap;margin:2em 0 2.6em}
+  .btn{display:inline-block;padding:.62em 1.25em;border-radius:10px;text-decoration:none;
+    border:1px solid var(--border);color:var(--ink);background:var(--surface);font-size:15px;font-weight:560}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.08);color:#fff}
+  ul{padding-left:1.2em;margin:.4em 0 0}
+  li{margin:.3em 0;color:var(--ink-2)}
+  .note{border:1px solid var(--border);background:var(--surface);border-radius:12px;
+    padding:1em 1.2em;color:var(--ink-2);font-size:14.5px;margin-top:2.4em}
+  .note b{color:var(--ink)}
+  h2{font-size:16px;letter-spacing:.04em;color:var(--muted);font-weight:650;margin:2.6em 0 .6em}
+  a{color:var(--accent)}
+  footer{margin-top:3em;color:var(--muted);font-size:13.5px}
+</style>
+<main>
+  <h1>把散落各处的体检报告，<br>变成一个双击就能打开的健康看板</h1>
+  <p class="lede">
+    化验能看多年趋势，报告原件内嵌可查，影像图能翻。一个 HTML 文件，全程本地，不上传任何数据。
+    <span class="en" style="display:block">Turn scattered medical reports into one self-contained HTML
+    health dashboard. Runs entirely on your machine — nothing is uploaded.</span>
+  </p>
+
+  <figure id="video">
+    <video controls preload="metadata" playsinline poster="media/intro-poster.jpg">
+      <source src="media/intro.mp4" type="video/mp4">
+      你的浏览器不支持内嵌视频，<a href="media/intro.mp4">点这里打开</a>。
+    </video>
+    <figcaption>30 秒介绍（中文旁白）· 片中演示画面的数据全部为合成示例 ·
+      30-second intro, Chinese narration; all data shown is synthetic</figcaption>
+  </figure>
+
+  <div class="cta">
+    <a class="btn primary" href="./demo/">▶ 打开可交互的演示看板</a>
+    <a class="btn" href="https://github.com/ghbhiee/health-report-agent">GitHub 仓库</a>
+    <a class="btn" href="https://github.com/ghbhiee/health-report-agent#readme">使用说明</a>
+  </div>
+
+  <h2>它怎么工作</h2>
+  <ul>
+    <li>把这个项目目录交给 Claude Code / Codex 之类的 agent</li>
+    <li>它引导你把报告弄到手——已有 PDF 直接放进去，或用电脑版微信打开医院小程序、把报告页转到 Chrome 用扩展批量抓</li>
+    <li>读懂内容（有文字层的 PDF 直接取，扫描件和照片由 agent 自己看图），生成页面</li>
+  </ul>
+
+  <div class="note">
+    <b>关于演示数据</b>　演示看板与视频里的姓名、日期、化验数值、报告结论和全部图片，
+    都是程序合成的虚构内容，不对应任何真实个人、医疗机构或医学影像。<br>
+    <b>不做医学诊断</b>　这个工具只是把你已有的报告重新组织展示，任何解读请以医生意见为准。
+  </div>
+
+  <footer>
+    MIT · <a href="https://github.com/ghbhiee/health-report-agent">github.com/ghbhiee/health-report-agent</a>
+  </footer>
+</main>
+</html>
